@@ -1,0 +1,14 @@
+{
+    "check_interval_seconds": 300,
+    "folders": [],
+    "notification": {
+        "method": "discord",
+        "telegram": {
+            "bot_token": "",
+            "chat_id": ""
+        },
+        "discord": {
+            "webhook_url": ""
+        }
+    }
+}
