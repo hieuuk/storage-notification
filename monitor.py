@@ -5,6 +5,7 @@ import time
 import sys
 
 from notifiers import notify
+from cleanup import expand_path, cleanup_folder
 
 CONFIG_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "config.json")
 
@@ -50,7 +51,7 @@ def format_size(size_bytes: int) -> str:
 def check_drives(config: dict) -> None:
     """Check all configured drives and send notifications if usage exceeds threshold."""
     for drive in config.get("drives", []):
-        path = drive["path"]
+        path = expand_path(drive["path"])
         threshold = drive["threshold_percent"]
 
         try:
@@ -82,10 +83,39 @@ def check_drives(config: dict) -> None:
             )
 
 
+def run_cleanup(folder: dict, path: str, current_size: int, config: dict) -> None:
+    """Run auto-cleanup for a folder if configured."""
+    cleanup_cfg = folder.get("cleanup")
+    if not cleanup_cfg or not cleanup_cfg.get("enabled"):
+        return
+
+    max_age = cleanup_cfg.get("max_age_days", 30)
+    patterns = cleanup_cfg.get("patterns", [])
+
+    print(f"Running cleanup on '{path}' (files older than {max_age} days)...")
+    files_deleted, bytes_freed = cleanup_folder(path, max_age, patterns)
+
+    if files_deleted > 0:
+        message = (
+            f"Cleanup Complete: '{folder.get('name', path)}'\n"
+            f"Path: {path}\n"
+            f"Deleted: {files_deleted} file(s)\n"
+            f"Freed: {format_size(bytes_freed)}\n"
+            f"Was: {format_size(current_size)} → Now: {format_size(current_size - bytes_freed)}"
+        )
+        print(message)
+        try:
+            notify(config, message)
+        except Exception as e:
+            print(f"Failed to send cleanup notification: {e}")
+    else:
+        print(f"Cleanup: no files older than {max_age} days to remove.")
+
+
 def check_folders(config: dict) -> None:
     """Check all configured folders and send notifications if over limit."""
     for folder in config["folders"]:
-        path = folder["path"]
+        path = expand_path(folder["path"])
         if not os.path.isdir(path):
             print(f"Warning: folder does not exist: {path}")
             continue
@@ -105,6 +135,8 @@ def check_folders(config: dict) -> None:
                 notify(config, message)
             except Exception as e:
                 print(f"Failed to send notification: {e}")
+
+            run_cleanup(folder, path, current_size, config)
         else:
             print(
                 f"OK: '{folder.get('name', path)}' - "

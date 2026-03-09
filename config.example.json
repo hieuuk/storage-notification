@@ -1,7 +1,18 @@
 {
     "check_interval_seconds": 300,
     "drives": [],
-    "folders": [],
+    "folders": [
+        {
+            "path": "/example/folder",
+            "name": "Example Folder",
+            "size_limit": "1GB",
+            "cleanup": {
+                "enabled": false,
+                "max_age_days": 30,
+                "patterns": ["*.log", "*.jsonl"]
+            }
+        }
+    ],
     "notification": {
         "method": "discord",
         "telegram": {
