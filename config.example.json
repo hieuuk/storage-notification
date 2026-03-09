@@ -1,5 +1,6 @@
 {
     "check_interval_seconds": 300,
+    "drives": [],
     "folders": [],
     "notification": {
         "method": "discord",

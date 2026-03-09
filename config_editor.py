@@ -101,6 +101,56 @@ def edit_folder(config: dict) -> None:
     print("Folder updated.")
 
 
+def list_drives(config: dict) -> None:
+    drives = config.get("drives", [])
+    if not drives:
+        print("\nNo drives configured.\n")
+        return
+    print(f"\n{'#':<4} {'Name':<25} {'Threshold':<12} Path")
+    print("-" * 80)
+    for i, drive in enumerate(drives):
+        name = drive.get("name", "(unnamed)")
+        print(f"{i:<4} {name:<25} {drive['threshold_percent']}%{'':>8} {drive['path']}")
+    print()
+
+
+def add_drive(config: dict) -> None:
+    path = input("Drive path (e.g. C:\\): ").strip()
+    if not path:
+        print("Cancelled.")
+        return
+    name = input("Name (optional, press Enter to skip): ").strip()
+    threshold = input("Usage threshold percentage (e.g. 80): ").strip()
+    if not threshold:
+        print("Threshold is required. Cancelled.")
+        return
+    try:
+        threshold_val = float(threshold)
+    except ValueError:
+        print("Invalid number. Cancelled.")
+        return
+
+    drive = {"path": path, "threshold_percent": threshold_val}
+    if name:
+        drive["name"] = name
+    config.setdefault("drives", []).append(drive)
+    save_config(config)
+    print(f"Added drive: {path} (threshold: {threshold_val}%)")
+
+
+def remove_drive(config: dict) -> None:
+    list_drives(config)
+    if not config.get("drives"):
+        return
+    try:
+        idx = int(input("Enter drive number to remove: ").strip())
+        removed = config["drives"].pop(idx)
+        save_config(config)
+        print(f"Removed: {removed['path']}")
+    except (ValueError, IndexError):
+        print("Invalid selection.")
+
+
 def set_notification(config: dict) -> None:
     current = config["notification"]["method"]
     print(f"\nCurrent method: {current}")
@@ -165,15 +215,18 @@ def main() -> None:
         "2) Add folder\n"
         "3) Edit folder\n"
         "4) Remove folder\n"
-        "5) Notification settings\n"
-        "6) Check interval\n"
-        "7) Show full config\n"
+        "5) List drives\n"
+        "6) Add drive\n"
+        "7) Remove drive\n"
+        "8) Notification settings\n"
+        "9) Check interval\n"
+        "c) Show full config\n"
         "0) Exit\n"
     )
 
     while True:
         print(menu)
-        choice = input("Choice: ").strip()
+        choice = input("Choice: ").strip().lower()
         if choice == "1":
             list_folders(config)
         elif choice == "2":
@@ -183,10 +236,16 @@ def main() -> None:
         elif choice == "4":
             remove_folder(config)
         elif choice == "5":
-            set_notification(config)
+            list_drives(config)
         elif choice == "6":
-            set_interval(config)
+            add_drive(config)
         elif choice == "7":
+            remove_drive(config)
+        elif choice == "8":
+            set_notification(config)
+        elif choice == "9":
+            set_interval(config)
+        elif choice == "c":
             show_config(config)
         elif choice == "0":
             print("Bye.")

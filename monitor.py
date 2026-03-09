@@ -1,5 +1,6 @@
 import json
 import os
+import shutil
 import time
 import sys
 
@@ -46,6 +47,41 @@ def format_size(size_bytes: int) -> str:
     return f"{size_bytes:.2f} PB"
 
 
+def check_drives(config: dict) -> None:
+    """Check all configured drives and send notifications if usage exceeds threshold."""
+    for drive in config.get("drives", []):
+        path = drive["path"]
+        threshold = drive["threshold_percent"]
+
+        try:
+            usage = shutil.disk_usage(path)
+        except OSError:
+            print(f"Warning: cannot access drive: {path}")
+            continue
+
+        used_percent = (usage.used / usage.total) * 100
+
+        if used_percent >= threshold:
+            message = (
+                f"Drive Alert: '{drive.get('name', path)}'\n"
+                f"Drive: {path}\n"
+                f"Usage: {used_percent:.1f}% "
+                f"({format_size(usage.used)} / {format_size(usage.total)})\n"
+                f"Threshold: {threshold}%\n"
+                f"Free: {format_size(usage.free)}"
+            )
+            print(f"ALERT: {message}")
+            try:
+                notify(config, message)
+            except Exception as e:
+                print(f"Failed to send notification: {e}")
+        else:
+            print(
+                f"OK: '{drive.get('name', path)}' - "
+                f"{used_percent:.1f}% used ({format_size(usage.free)} free)"
+            )
+
+
 def check_folders(config: dict) -> None:
     """Check all configured folders and send notifications if over limit."""
     for folder in config["folders"]:
@@ -79,15 +115,19 @@ def check_folders(config: dict) -> None:
 def main() -> None:
     config = load_config()
 
-    if not config["folders"]:
-        print("No folders configured. Run config_editor.py to add folders.")
+    drives = config.get("drives", [])
+    folders = config.get("folders", [])
+
+    if not folders and not drives:
+        print("No folders or drives configured. Run config_editor.py to set up.")
         sys.exit(1)
 
     interval = config.get("check_interval_seconds", 300)
     print(f"Storage monitor started. Checking every {interval} seconds.")
-    print(f"Monitoring {len(config['folders'])} folder(s).")
+    print(f"Monitoring {len(drives)} drive(s) and {len(folders)} folder(s).")
 
     while True:
+        check_drives(config)
         check_folders(config)
         time.sleep(interval)
 
