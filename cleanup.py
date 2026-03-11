@@ -7,8 +7,15 @@ def expand_path(path: str) -> str:
     return os.path.normpath(os.path.expandvars(os.path.expanduser(path)))
 
 
-def cleanup_folder(path: str, max_age_days: int, patterns: list[str]) -> tuple[int, int]:
-    """Delete files matching patterns older than max_age_days.
+def cleanup_folder(path: str, max_age_days: int, patterns: list[str],
+                   max_file_size: int = 0) -> tuple[int, int]:
+    """Delete files matching patterns that are older than max_age_days OR larger than max_file_size.
+
+    Args:
+        path: Folder to clean.
+        max_age_days: Delete files older than this (0 to disable age check).
+        patterns: Glob patterns to match filenames (empty = match all).
+        max_file_size: Delete files larger than this in bytes (0 to disable size check).
 
     Returns (files_deleted, bytes_freed).
     """
@@ -16,7 +23,7 @@ def cleanup_folder(path: str, max_age_days: int, patterns: list[str]) -> tuple[i
     if not os.path.isdir(path):
         return 0, 0
 
-    cutoff = time.time() - (max_age_days * 86400)
+    cutoff = time.time() - (max_age_days * 86400) if max_age_days > 0 else 0
     files_deleted = 0
     bytes_freed = 0
 
@@ -28,7 +35,9 @@ def cleanup_folder(path: str, max_age_days: int, patterns: list[str]) -> tuple[i
             fpath = os.path.join(dirpath, fname)
             try:
                 stat = os.stat(fpath)
-                if stat.st_mtime < cutoff:
+                too_old = max_age_days > 0 and stat.st_mtime < cutoff
+                too_big = max_file_size > 0 and stat.st_size >= max_file_size
+                if too_old or too_big:
                     size = stat.st_size
                     os.remove(fpath)
                     files_deleted += 1

@@ -89,11 +89,17 @@ def run_cleanup(folder: dict, path: str, current_size: int, config: dict) -> Non
     if not cleanup_cfg or not cleanup_cfg.get("enabled"):
         return
 
-    max_age = cleanup_cfg.get("max_age_days", 30)
+    max_age = cleanup_cfg.get("max_age_days", 0)
+    max_file_size = parse_size(cleanup_cfg["max_file_size"]) if cleanup_cfg.get("max_file_size") else 0
     patterns = cleanup_cfg.get("patterns", [])
 
-    print(f"Running cleanup on '{path}' (files older than {max_age} days)...")
-    files_deleted, bytes_freed = cleanup_folder(path, max_age, patterns)
+    reasons = []
+    if max_age > 0:
+        reasons.append(f"older than {max_age} days")
+    if max_file_size > 0:
+        reasons.append(f"larger than {format_size(max_file_size)}")
+    print(f"Running cleanup on '{path}' ({' or '.join(reasons)})...")
+    files_deleted, bytes_freed = cleanup_folder(path, max_age, patterns, max_file_size)
 
     if files_deleted > 0:
         message = (
