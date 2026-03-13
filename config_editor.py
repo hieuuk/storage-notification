@@ -198,6 +198,16 @@ def set_interval(config: dict) -> None:
         print("Invalid number.")
 
 
+def set_computer_name(config: dict) -> None:
+    current = config.get("computer_name", "")
+    print(f"\nCurrent computer name: {current or '(not set)'}")
+    name = input("New computer name (Enter to keep): ").strip()
+    if name:
+        config["computer_name"] = name
+        save_config(config)
+        print(f"Computer name set to '{name}'.")
+
+
 def show_config(config: dict) -> None:
     print("\n" + json.dumps(config, indent=4) + "\n")
 
@@ -220,6 +230,7 @@ def main() -> None:
         "7) Remove drive\n"
         "8) Notification settings\n"
         "9) Check interval\n"
+        "n) Computer name\n"
         "c) Show full config\n"
         "0) Exit\n"
     )
@@ -245,6 +256,8 @@ def main() -> None:
             set_notification(config)
         elif choice == "9":
             set_interval(config)
+        elif choice == "n":
+            set_computer_name(config)
         elif choice == "c":
             show_config(config)
         elif choice == "0":

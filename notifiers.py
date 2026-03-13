@@ -18,6 +18,9 @@ def send_discord(webhook_url: str, message: str) -> bool:
 
 def notify(config: dict, message: str) -> bool:
     """Send notification using the configured method."""
+    computer_name = config.get("computer_name", "")
+    if computer_name:
+        message = f"[{computer_name}] {message}"
     method = config["notification"]["method"]
     if method == "telegram":
         tg = config["notification"]["telegram"]

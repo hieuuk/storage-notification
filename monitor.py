@@ -161,7 +161,10 @@ def main() -> None:
         sys.exit(1)
 
     interval = config.get("check_interval_seconds", 300)
+    computer_name = config.get("computer_name", "")
     print(f"Storage monitor started. Checking every {interval} seconds.")
+    if computer_name:
+        print(f"Computer: {computer_name}")
     print(f"Monitoring {len(drives)} drive(s) and {len(folders)} folder(s).")
 
     while True:
